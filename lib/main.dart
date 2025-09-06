@@ -29,11 +29,7 @@ class User {
   User({this.id, required this.username, required this.password});
 
   Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'username': username,
-      'password': password,
-    };
+    return {'id': id, 'username': username, 'password': password};
   }
 }
 
@@ -78,11 +74,7 @@ class DatabaseService {
 
   Future<Database> _initDatabase() async {
     String dbPath = path.join(await getDatabasesPath(), 'notes_app.db');
-    return await openDatabase(
-      dbPath,
-      version: 1,
-      onCreate: _onCreate,
-    );
+    return await openDatabase(dbPath, version: 1, onCreate: _onCreate);
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -167,11 +159,7 @@ class DatabaseService {
 
   Future<int> deleteNote(int id) async {
     Database db = await database;
-    return await db.delete(
-      'notes',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return await db.delete('notes', where: 'id = ?', whereArgs: [id]);
   }
 }
 
@@ -182,9 +170,9 @@ class AuthService {
     try {
       var existingUser = await _dbService.getUser(user.username);
       if (existingUser != null) {
-        return false; 
+        return false;
       }
-      
+
       await _dbService.insertUser(user);
       return true;
     } catch (e) {
@@ -197,15 +185,17 @@ class AuthService {
     try {
       User? user = await _dbService.getUser(username);
       if (user == null) {
-        debugPrint('Aucun utilisateur trouvé avec le nom d\'utilisateur: $username');
+        debugPrint(
+          'Aucun utilisateur trouvé avec le nom d\'utilisateur: $username',
+        );
         return null;
       }
-      
+
       if (user.password != password) {
         debugPrint('Mot de passe incorrect pour l\'utilisateur: $username');
         return null;
       }
-      
+
       debugPrint('Connexion réussie pour l\'utilisateur: $username');
       return user;
     } catch (e) {
@@ -230,15 +220,15 @@ class _LoginScreenState extends State<LoginScreen> {
   void _login() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
-      
+
       try {
         User? user = await _authService.login(
           _usernameController.text.trim(),
           _passwordController.text,
         );
-        
+
         setState(() => _isLoading = false);
-        
+
         if (user != null) {
           if (!mounted) return;
           Navigator.pushReplacement(
@@ -278,7 +268,7 @@ class _LoginScreenState extends State<LoginScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Image.asset(
-                'assets/images/note.jpg', 
+                'assets/images/note.jpg',
                 height: 100,
                 width: 100,
                 errorBuilder: (context, error, stackTrace) {
@@ -369,7 +359,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       }
 
       setState(() => _isLoading = true);
-      
+
       try {
         bool success = await _authService.register(
           User(
@@ -377,11 +367,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
             password: _passwordController.text,
           ),
         );
-        
+
         setState(() => _isLoading = false);
-        
+
         if (!mounted) return;
-        
+
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -406,7 +396,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur lors de la création du compte: ${e.toString()}'),
+            content: Text(
+              'Erreur lors de la création du compte: ${e.toString()}',
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -562,7 +554,7 @@ class _NotesScreenState extends State<NotesScreen> {
       builder: (BuildContext context) {
         final titleController = TextEditingController(text: note.title);
         final contentController = TextEditingController(text: note.content);
-        
+
         return AlertDialog(
           title: Text('Modifier la note'),
           content: SingleChildScrollView(
@@ -595,7 +587,8 @@ class _NotesScreenState extends State<NotesScreen> {
             ),
             TextButton(
               onPressed: () async {
-                if (titleController.text.isNotEmpty && contentController.text.isNotEmpty) {
+                if (titleController.text.isNotEmpty &&
+                    contentController.text.isNotEmpty) {
                   Note updatedNote = Note(
                     id: note.id,
                     title: titleController.text,
@@ -603,7 +596,7 @@ class _NotesScreenState extends State<NotesScreen> {
                     lastModified: DateTime.now(),
                     color: note.color,
                   );
-                  
+
                   await _dbService.updateNote(updatedNote);
                   _loadNotes();
                   Navigator.of(context).pop();
@@ -637,37 +630,37 @@ class _NotesScreenState extends State<NotesScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _notes.isEmpty
-              ? const Center(child: Text('Aucune note. Ajoutez-en une!'))
-              : ListView.builder(
-                  itemCount: _notes.length,
-                  itemBuilder: (context, index) {
-                    final note = _notes[index];
-                    return ListTile(
-                      title: Text(
-                        note.title,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+          ? const Center(child: Text('Aucune note. Ajoutez-en une!'))
+          : ListView.builder(
+              itemCount: _notes.length,
+              itemBuilder: (context, index) {
+                final note = _notes[index];
+                return ListTile(
+                  title: Text(
+                    note.title,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(
+                    note.content.length > 100
+                        ? '${note.content.substring(0, 100)}...'
+                        : note.content,
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit),
+                        onPressed: () => _editNote(note),
                       ),
-                      subtitle: Text(
-                        note.content.length > 100
-                            ? '${note.content.substring(0, 100)}...'
-                            : note.content,
+                      IconButton(
+                        icon: const Icon(Icons.delete),
+                        onPressed: () => _confirmDelete(note.id!),
                       ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.edit),
-                            onPressed: () => _editNote(note),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete),
-                            onPressed: () => _confirmDelete(note.id!),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
+                    ],
+                  ),
+                );
+              },
+            ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           showDialog(
@@ -675,7 +668,7 @@ class _NotesScreenState extends State<NotesScreen> {
             builder: (BuildContext context) {
               final titleController = TextEditingController();
               final contentController = TextEditingController();
-              
+
               return AlertDialog(
                 title: Text('Nouvelle note'),
                 content: SingleChildScrollView(
@@ -708,13 +701,14 @@ class _NotesScreenState extends State<NotesScreen> {
                   ),
                   TextButton(
                     onPressed: () async {
-                      if (titleController.text.isNotEmpty && contentController.text.isNotEmpty) {
+                      if (titleController.text.isNotEmpty &&
+                          contentController.text.isNotEmpty) {
                         Note newNote = Note(
                           title: titleController.text,
                           content: contentController.text,
                           lastModified: DateTime.now(),
                         );
-                        
+
                         await _dbService.insertNote(newNote, widget.user.id!);
                         _loadNotes();
                         Navigator.of(context).pop();
